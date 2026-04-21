@@ -310,162 +310,187 @@ HTML_TEMPLATE = """
             gap: 10px;
         }
         
-        /* Category Buckets */
-        .category-bucket {
-            margin: 0 0 12px 0;
+        /* Account Buckets - Top Level */
+        .account-bucket {
+            margin: 0 0 16px 0;
             background: var(--bg-panel);
             border: 1px solid var(--border-subtle);
             border-radius: 8px;
             overflow: hidden;
         }
         
-        .category-header {
+        .account-bucket-header {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 10px 14px;
+            gap: 12px;
+            padding: 12px 16px;
             cursor: pointer;
-            transition: background 0.15s ease;
+            transition: all 0.15s ease;
             user-select: none;
-        }
-        
-        .category-header:hover {
             background: var(--bg-surface-2);
-        }
-        
-        .category-icon {
-            width: 28px;
-            height: 28px;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            font-weight: 600;
-        }
-        
-        /* Category-specific colors */
-        .category-bucket.urgent-bucket .category-header {
-            background: linear-gradient(135deg, rgba(220,38,38,0.15), rgba(220,38,38,0.05));
-            border-bottom: 2px solid var(--urgent-red);
-        }
-        .category-bucket.urgent-bucket .category-icon { background: var(--urgent-red); color: white; }
-        .category-bucket.urgent-bucket .category-name { color: var(--urgent-red); }
-        
-        .category-bucket.important-bucket .category-header {
-            background: linear-gradient(135deg, rgba(234,88,12,0.15), rgba(234,88,12,0.05));
-            border-bottom: 2px solid var(--important-orange);
-        }
-        .category-bucket.important-bucket .category-icon { background: var(--important-orange); color: white; }
-        .category-bucket.important-bucket .category-name { color: var(--important-orange); }
-        
-        .category-bucket.normal-bucket .category-header {
-            background: linear-gradient(135deg, rgba(79,70,229,0.1), rgba(79,70,229,0.03));
-            border-bottom: 2px solid var(--accent);
-        }
-        .category-bucket.normal-bucket .category-icon { background: var(--accent); color: white; }
-        .category-bucket.normal-bucket .category-name { color: var(--accent); }
-        
-        .category-bucket.newsletter-bucket .category-header {
-            background: linear-gradient(135deg, rgba(22,163,74,0.15), rgba(22,163,74,0.05));
-            border-bottom: 2px solid var(--newsletter-green);
-        }
-        .category-bucket.newsletter-bucket .category-icon { background: var(--newsletter-green); color: white; }
-        .category-bucket.newsletter-bucket .category-name { color: var(--newsletter-green); }
-        
-        .category-bucket.spam-bucket .category-header {
-            background: linear-gradient(135deg, rgba(107,114,128,0.15), rgba(107,114,128,0.05));
-            border-bottom: 2px solid var(--text-muted);
-        }
-        .category-bucket.spam-bucket .category-icon { background: var(--text-muted); color: white; }
-        .category-bucket.spam-bucket .category-name { color: var(--text-muted); }
-        
-        .category-name {
-            font-size: 14px;
-            font-weight: 600;
-            text-transform: capitalize;
-        }
-        
-        .category-count {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-primary);
-            background: var(--bg-surface);
-            padding: 2px 8px;
-            border-radius: 12px;
-            margin-left: auto;
-        }
-        
-        .category-toggle {
-            font-size: 12px;
-            color: var(--text-muted);
-            transition: transform 0.2s ease;
-        }
-        
-        .category-bucket.collapsed .category-toggle {
-            transform: rotate(-90deg);
-        }
-        
-        .category-emails {
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-        
-        .category-bucket.collapsed .category-emails {
-            display: none;
-        }
-        
-        /* Legacy Account Section (kept for compatibility) */
-        .account-section {
-            margin: 0;
-            background: var(--bg-panel);
-            border: 1px solid var(--border-subtle);
-            border-radius: 8px;
-            padding: 8px;
-        }
-        
-        .account-header {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 6px;
-            padding-bottom: 6px;
             border-bottom: 1px solid var(--border-subtle);
         }
         
-        .account-avatar {
-            width: 28px;
-            height: 28px;
+        .account-bucket-header:hover {
+            background: var(--bg-surface-3);
+        }
+        
+        .account-bucket.collapsed .account-bucket-header {
+            border-bottom: none;
+        }
+        
+        .account-bucket-avatar {
+            width: 32px;
+            height: 32px;
             border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
             font-weight: 600;
-            font-size: 12px;
+            font-size: 14px;
         }
         
-        .account-avatar.gmail {
+        .account-bucket-avatar.gmail {
             background: linear-gradient(135deg, #ea4335, #4285f4);
         }
         
-        .account-avatar.yahoo {
+        .account-bucket-avatar.yahoo {
             background: linear-gradient(135deg, #6001d2, #7b2cbf);
         }
         
-        .account-name {
-            font-size: 14px;
+        .account-bucket-name {
+            font-size: 15px;
             font-weight: 600;
             color: var(--text-primary);
         }
         
-        .account-count {
-            font-size: 11px;
-            color: var(--text-subtle);
+        .account-bucket-count {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+            background: var(--bg-surface);
+            padding: 2px 10px;
+            border-radius: 12px;
             margin-left: auto;
         }
+        
+        .account-bucket-toggle {
+            font-size: 12px;
+            color: var(--text-muted);
+            transition: transform 0.2s ease;
+        }
+        
+        .account-bucket.collapsed .account-bucket-toggle {
+            transform: rotate(-90deg);
+        }
+        
+        .account-bucket-content {
+            padding: 12px;
+        }
+        
+        .account-bucket.collapsed .account-bucket-content {
+            display: none;
+        }
+        
+        /* Category Sub-groups within Account */
+        .category-subgroup {
+            margin: 0 0 12px 0;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        
+        .category-subgroup:last-child {
+            margin-bottom: 0;
+        }
+        
+        .category-subgroup-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+            user-select: none;
+        }
+        
+        .category-subgroup-header:hover {
+            background: var(--bg-surface-2);
+        }
+        
+        .category-subgroup-icon {
+            font-size: 14px;
+        }
+        
+        .category-subgroup-name {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+        
+        .category-subgroup-count {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            background: var(--bg-panel);
+            padding: 1px 6px;
+            border-radius: 10px;
+            margin-left: auto;
+        }
+        
+        .category-subgroup-toggle {
+            font-size: 10px;
+            color: var(--text-muted);
+            transition: transform 0.2s ease;
+        }
+        
+        .category-subgroup.collapsed .category-subgroup-toggle {
+            transform: rotate(-90deg);
+        }
+        
+        .category-subgroup-emails {
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .category-subgroup.collapsed .category-subgroup-emails {
+            display: none;
+        }
+        
+        /* Category-specific colors for subgroups */
+        .category-subgroup.urgent-subgroup .category-subgroup-header {
+            background: rgba(220,38,38,0.08);
+            border-left: 3px solid var(--urgent-red);
+        }
+        .category-subgroup.urgent-subgroup .category-subgroup-name { color: var(--urgent-red); }
+        
+        .category-subgroup.important-subgroup .category-subgroup-header {
+            background: rgba(234,88,12,0.08);
+            border-left: 3px solid var(--important-orange);
+        }
+        .category-subgroup.important-subgroup .category-subgroup-name { color: var(--important-orange); }
+        
+        .category-subgroup.normal-subgroup .category-subgroup-header {
+            background: rgba(79,70,229,0.05);
+            border-left: 3px solid var(--accent);
+        }
+        .category-subgroup.normal-subgroup .category-subgroup-name { color: var(--accent); }
+        
+        .category-subgroup.newsletter-subgroup .category-subgroup-header {
+            background: rgba(22,163,74,0.08);
+            border-left: 3px solid var(--newsletter-green);
+        }
+        .category-subgroup.newsletter-subgroup .category-subgroup-name { color: var(--newsletter-green); }
+        
+        .category-subgroup.spam-subgroup .category-subgroup-header {
+            background: rgba(107,114,128,0.08);
+            border-left: 3px solid var(--text-muted);
+        }
+        .category-subgroup.spam-subgroup .category-subgroup-name { color: var(--text-muted); }
         
         /* Email List */
         .email-list {
@@ -728,56 +753,69 @@ HTML_TEMPLATE = """
                 </div>
             </div>
             
-            <!-- Categories Container -->
+            <!-- Accounts Container -->
             <div id="accounts-container">
-                {% for category in categories %}
-                <div class="category-bucket {{ category.id }}-bucket" id="category-{{ category.id }}">
-                    <div class="category-header" onclick="toggleCategory('{{ category.id }}')">
-                        <div class="category-icon">{{ category.icon }}</div>
-                        <div class="category-name">{{ category.name }}</div>
-                        <div class="category-count">{{ category.count }}</div>
-                        <div class="category-toggle">▼</div>
+                {% for account in accounts %}
+                <div class="account-bucket" id="account-{{ account.id }}">
+                    <div class="account-bucket-header" onclick="toggleAccount('{{ account.id }}')">
+                        <div class="account-bucket-avatar {{ account.type }}">{{ account.initial }}</div>
+                        <div class="account-bucket-name">{{ account.email }}</div>
+                        <div class="account-bucket-count">{{ account.count }}</div>
+                        <div class="account-bucket-toggle">▼</div>
                     </div>
                     
-                    <div class="category-emails">
-                        {% for email in category.emails %}
-                        <div class="email-card {{ email.category }}-card" 
-                             data-email-id="{{ email.email_id }}"
-                             onclick="toggleSummary('{{ email.email_id }}')">
-                            <div class="email-header">
-                                <div class="sender-avatar">{{ email.sender_initial }}</div>
-                                <div class="email-body">
-                                    <div class="email-subject">{{ email.subject }}</div>
-                                    <div class="email-meta">
-                                        <span class="email-sender">{{ email.sender_name or 'Unknown' }}</span>
-                                        <span class="account-badge {{ email.account_type }}">{{ email.account_initial }}</span>
-                                        <span class="email-time">{{ email.time_str }}</span>
+                    <div class="account-bucket-content">
+                        {% for cat_id, cat_data in account.categories.items() %}
+                        {% if cat_data.count > 0 %}
+                        <div class="category-subgroup {{ cat_id }}-subgroup" id="account-{{ account.id }}-cat-{{ cat_id }}">
+                            <div class="category-subgroup-header" onclick="toggleCategorySubgroup('{{ account.id }}', '{{ cat_id }}')">
+                                <span class="category-subgroup-icon">{{ cat_data.icon }}</span>
+                                <span class="category-subgroup-name">{{ cat_id }}</span>
+                                <span class="category-subgroup-count">{{ cat_data.count }}</span>
+                                <span class="category-subgroup-toggle">▼</span>
+                            </div>
+                            <div class="category-subgroup-emails">
+                                {% for email in cat_data.emails %}
+                                <div class="email-card {{ email.category }}-card" 
+                                     data-email-id="{{ email.email_id }}"
+                                     onclick="toggleSummary('{{ email.email_id }}')">
+                                    <div class="email-header">
+                                        <div class="sender-avatar">{{ email.sender_initial }}</div>
+                                        <div class="email-body">
+                                            <div class="email-subject">{{ email.subject }}</div>
+                                            <div class="email-meta">
+                                                <span class="email-sender">{{ email.sender_name or 'Unknown' }}</span>
+                                                <span class="email-time">{{ email.time_str }}</span>
+                                            </div>
+                                        </div>
+                                        <div class="email-right">
+                                            {% if email.urgency_score > 0 %}
+                                            <div class="urgency-badge {{ email.urgency_class }}">{{ email.urgency_display }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="email-summary" id="summary-{{ email.email_id }}">
+                                        <div class="summary-label">Summary</div>
+                                        <div class="summary-text" id="summary-text-{{ email.email_id }}">
+                                            {% if email.body %}
+                                            {{ email.body }}
+                                            {% else %}
+                                            <span class="summary-loading">No content available</span>
+                                            {% endif %}
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="email-right">
-                                    {% if email.urgency_score > 0 %}
-                                    <div class="urgency-badge {{ email.urgency_class }}">{{ email.urgency_display }}</div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            <div class="email-summary" id="summary-{{ email.email_id }}">
-                                <div class="summary-label">Summary</div>
-                                <div class="summary-text" id="summary-text-{{ email.email_id }}">
-                                    {% if email.body_preview %}
-                                    {{ email.body_preview }}
-                                    {% else %}
-                                    <span class="summary-loading">No preview available</span>
-                                    {% endif %}
-                                </div>
+                                {% endfor %}
                             </div>
                         </div>
+                        {% endif %}
                         {% endfor %}
                     </div>
                 </div>
                 {% endfor %}
             </div>
             
-            {% if not categories %}
+            {% if not accounts %}
             <div class="empty-state">
                 <div class="empty-icon">&#128236;</div>
                 <div class="empty-text">No emails for today</div>
@@ -969,60 +1007,91 @@ HTML_TEMPLATE = """
             return (str || '').replace(/[&<>"']/g, c => map[c] || c);
         }
 
-        function renderCategories(categories) {
-            if (!categories || categories.length === 0) {
+        function renderAccounts(accounts) {
+            if (!accounts || accounts.length === 0) {
                 return `<div class="empty-state"><div class="empty-icon">&#128236;</div><div class="empty-text">No emails for this day</div></div>`;
             }
 
-            return categories.map(category => {
-                const emailsHtml = (category.emails || []).map(email => {
-                    const categoryClass = `${email.category || 'normal'}-card`;
-                    return `
-                    <div class="email-card ${categoryClass}" data-email-id="${escapeHtml(email.email_id)}" onclick="toggleSummary('${escapeHtml(email.email_id)}')">
-                        <div class="email-header">
-                            <div class="sender-avatar">${escapeHtml(email.sender_initial || '?')}</div>
-                            <div class="email-body">
-                                <div class="email-subject">${escapeHtml(email.subject)}</div>
-                                <div class="email-meta">
-                                    <span class="email-sender">${escapeHtml(email.sender_name || 'Unknown')}</span>
-                                    <span class="account-badge ${escapeHtml(email.account_type || 'gmail')}">${escapeHtml(email.account_initial || 'G')}</span>
-                                    <span class="email-time">${escapeHtml(email.time_str || '')}</span>
+            const categoryOrder = ['urgent', 'important', 'normal', 'newsletter', 'spam'];
+            const categoryIcons = {
+                'urgent': '🚨',
+                'important': '⚠️',
+                'normal': '📧',
+                'newsletter': '📰',
+                'spam': '🗑️'
+            };
+
+            return accounts.map(account => {
+                const categoriesHtml = categoryOrder.map(catId => {
+                    const catData = account.categories && account.categories[catId];
+                    if (!catData || catData.count === 0) return '';
+
+                    const emailsHtml = (catData.emails || []).map(email => {
+                        const categoryClass = `${email.category || 'normal'}-card`;
+                        return `
+                        <div class="email-card ${categoryClass}" data-email-id="${escapeHtml(email.email_id)}" onclick="toggleSummary('${escapeHtml(email.email_id)}')">
+                            <div class="email-header">
+                                <div class="sender-avatar">${escapeHtml(email.sender_initial || '?')}</div>
+                                <div class="email-body">
+                                    <div class="email-subject">${escapeHtml(email.subject)}</div>
+                                    <div class="email-meta">
+                                        <span class="email-sender">${escapeHtml(email.sender_name || 'Unknown')}</span>
+                                        <span class="email-time">${escapeHtml(email.time_str || '')}</span>
+                                    </div>
+                                </div>
+                                <div class="email-right">
+                                    ${email.urgency_score ? `<div class="urgency-badge ${escapeHtml(email.urgency_class)}">${escapeHtml(email.urgency_display)}</div>` : ''}
                                 </div>
                             </div>
-                            <div class="email-right">
-                                ${email.urgency_score ? `<div class="urgency-badge ${escapeHtml(email.urgency_class)}">${escapeHtml(email.urgency_display)}</div>` : ''}
+                            <div class="email-summary" id="summary-${escapeHtml(email.email_id)}">
+                                <div class="summary-label">Summary</div>
+                                <div class="summary-text" id="summary-text-${escapeHtml(email.email_id)}">${escapeHtml(email.body || email.body_preview || 'No content available')}</div>
                             </div>
+                        </div>`;
+                    }).join('');
+
+                    return `
+                    <div class="category-subgroup ${catId}-subgroup" id="account-${escapeHtml(account.id)}-cat-${catId}">
+                        <div class="category-subgroup-header" onclick="toggleCategorySubgroup('${escapeHtml(account.id)}', '${catId}')">
+                            <span class="category-subgroup-icon">${categoryIcons[catId]}</span>
+                            <span class="category-subgroup-name">${catId}</span>
+                            <span class="category-subgroup-count">${catData.count}</span>
+                            <span class="category-subgroup-toggle">▼</span>
                         </div>
-                        <div class="email-summary" id="summary-${escapeHtml(email.email_id)}">
-                            <div class="summary-label">Summary</div>
-                            <div class="summary-text" id="summary-text-${escapeHtml(email.email_id)}">${escapeHtml(email.body_preview || 'No preview available')}</div>
-                        </div>
+                        <div class="category-subgroup-emails">${emailsHtml}</div>
                     </div>`;
                 }).join('');
 
                 return `
-                <div class="category-bucket ${category.id}-bucket" id="category-${escapeHtml(category.id)}">
-                    <div class="category-header" onclick="toggleCategory('${escapeHtml(category.id)}')">
-                        <div class="category-icon">${category.icon}</div>
-                        <div class="category-name">${escapeHtml(category.name)}</div>
-                        <div class="category-count">${category.count || 0}</div>
-                        <div class="category-toggle">▼</div>
+                <div class="account-bucket" id="account-${escapeHtml(account.id)}">
+                    <div class="account-bucket-header" onclick="toggleAccount('${escapeHtml(account.id)}')">
+                        <div class="account-bucket-avatar ${escapeHtml(account.type)}">${escapeHtml(account.initial)}</div>
+                        <div class="account-bucket-name">${escapeHtml(account.email)}</div>
+                        <div class="account-bucket-count">${account.count || 0}</div>
+                        <div class="account-bucket-toggle">▼</div>
                     </div>
-                    <div class="category-emails">${emailsHtml}</div>
+                    <div class="account-bucket-content">${categoriesHtml}</div>
                 </div>`;
             }).join('');
         }
 
-        function toggleCategory(categoryId) {
-            const bucket = document.getElementById('category-' + categoryId);
+        function toggleAccount(accountId) {
+            const bucket = document.getElementById('account-' + accountId);
             if (bucket) {
                 bucket.classList.toggle('collapsed');
             }
         }
 
+        function toggleCategorySubgroup(accountId, categoryId) {
+            const subgroup = document.getElementById('account-' + accountId + '-cat-' + categoryId);
+            if (subgroup) {
+                subgroup.classList.toggle('collapsed');
+            }
+        }
+
         function renderDay(payload) {
             const stats = payload.stats || {};
-            const categories = payload.categories || [];
+            const accounts = payload.accounts || [];
             document.getElementById('stat-urgent').textContent = stats.urgent || 0;
             document.getElementById('stat-important').textContent = stats.important || 0;
             document.getElementById('stat-newsletter').textContent = stats.newsletter || 0;
@@ -1042,7 +1111,7 @@ HTML_TEMPLATE = """
             }
 
             const container = document.getElementById('accounts-container');
-            container.innerHTML = renderCategories(categories);
+            container.innerHTML = renderAccounts(accounts);
         }
 
         async function loadDate(dateStr) {
@@ -1384,7 +1453,7 @@ def get_calendar_events():
         return {"events": [], "error": str(e)}
 
 def get_todays_emails_by_account(target_date=None):
-    """Get emails for a given date (YYYY-MM-DD) grouped by account."""
+    """Get emails for a given date grouped by account with category sub-groups."""
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -1396,12 +1465,14 @@ def get_todays_emails_by_account(target_date=None):
                date, urgency_score, category, body
         FROM emails
         WHERE date LIKE ?
-        ORDER BY
+        ORDER BY account,
             CASE category
                 WHEN 'urgent' THEN 1
                 WHEN 'important' THEN 2
-                WHEN 'newsletter' THEN 3
-                ELSE 4
+                WHEN 'normal' THEN 3
+                WHEN 'newsletter' THEN 4
+                WHEN 'spam' THEN 5
+                ELSE 6
             END,
             urgency_score DESC,
             date DESC
@@ -1411,6 +1482,14 @@ def get_todays_emails_by_account(target_date=None):
 
     # Group by account
     accounts_dict = {}
+    category_order = ['urgent', 'important', 'normal', 'newsletter', 'spam']
+    category_icons = {
+        'urgent': '🚨',
+        'important': '⚠️',
+        'normal': '📧',
+        'newsletter': '📰',
+        'spam': '🗑️'
+    }
 
     for row in cursor.fetchall():
         account_email = row["account"] or "unknown"
@@ -1431,11 +1510,13 @@ def get_todays_emails_by_account(target_date=None):
                 "initial": account_initial,
                 "count": 0,
                 "emails": [],
+                "categories": {cat: {"emails": [], "count": 0, "icon": category_icons[cat]} for cat in category_order},
             }
 
         # Process email
         sender_name = row["sender_name"] or ""
         sender_initial = sender_name[0].upper() if sender_name else "?"
+        cat = row["category"] or "normal"
 
         # Parse time from date string
         date_str_full = row["date"] or ""
@@ -1459,37 +1540,33 @@ def get_todays_emails_by_account(target_date=None):
         else:
             urgency_class = "low"
 
-        # Build quick summary for click-to-expand details
+        # Store full body for display
         body = row["body"] or ""
-        body_preview = build_quick_summary(
-            subject=row["subject"],
-            sender_name=sender_name,
-            category=row["category"],
-            urgency=urgency,
-            body=body,
-        )
 
-        accounts_dict[account_email]["emails"].append(
-            {
-                "email_id": row["email_id"],
-                "subject": row["subject"] or "(No subject)",
-                "sender_name": sender_name,
-                "sender_email": row["sender_email"] or "",
-                "sender_initial": sender_initial,
-                "date": row["date"],
-                "time_str": time_str,
-                "urgency_score": urgency,
-                "urgency_display": urgency_display,
-                "urgency_class": urgency_class,
-                "category": row["category"] or "normal",
-                "body_preview": body_preview,
-            }
-        )
+        email_data = {
+            "email_id": row["email_id"],
+            "subject": row["subject"] or "(No subject)",
+            "sender_name": sender_name,
+            "sender_email": row["sender_email"] or "",
+            "sender_initial": sender_initial,
+            "date": row["date"],
+            "time_str": time_str,
+            "urgency_score": urgency,
+            "urgency_display": urgency_display,
+            "urgency_class": urgency_class,
+            "category": cat,
+            "body": body,  # Full body stored
+            "body_preview": body[:200] + "..." if len(body) > 200 else body,  # Short preview
+        }
+
+        accounts_dict[account_email]["emails"].append(email_data)
+        accounts_dict[account_email]["categories"][cat]["emails"].append(email_data)
+        accounts_dict[account_email]["categories"][cat]["count"] += 1
         accounts_dict[account_email]["count"] += 1
 
     conn.close()
 
-    # Sort accounts: Gmail first, then Yahoo
+    # Sort accounts: Gmail first, then Yahoo, then others
     accounts = list(accounts_dict.values())
     accounts.sort(key=lambda a: (0 if a["type"] == "gmail" else 1, a["email"]))
 
@@ -1631,17 +1708,17 @@ def index():
     target_date = requested_date or (available_dates[0] if available_dates else date.today().isoformat())
 
     stats = get_todays_stats(target_date)
-    categories = get_todays_emails_by_category(target_date)
+    accounts = get_todays_emails_by_account(target_date)
     weather = get_weather_data()
     calendar = get_calendar_events()
-    email_summary = generate_email_summary([], stats)  # Pass empty accounts for summary
+    email_summary = generate_email_summary(accounts, stats)  # Restore grand summary
 
-    total_count = sum(c["count"] for c in categories)
+    total_count = sum(a["count"] for a in accounts)
 
     return render_template_string(
         HTML_TEMPLATE,
         stats=stats,
-        categories=categories,
+        accounts=accounts,
         total_count=total_count,
         current_date=datetime.now().strftime("%A, %B %d, %Y %H:%M"),
         last_refresh=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -1684,15 +1761,15 @@ def api_day():
     target_date = request.args.get("date") or date.today().isoformat()
 
     stats = get_todays_stats(target_date)
-    categories = get_todays_emails_by_category(target_date)
-    total_count = sum(c["count"] for c in categories)
-    email_summary = generate_email_summary([], stats)
+    accounts = get_todays_emails_by_account(target_date)
+    total_count = sum(a["count"] for a in accounts)
+    email_summary = generate_email_summary(accounts, stats)
 
     return jsonify(
         {
             "date": target_date,
             "stats": stats,
-            "categories": categories,
+            "accounts": accounts,
             "total_count": total_count,
             "email_summary": email_summary,
         }
