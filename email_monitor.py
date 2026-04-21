@@ -15,7 +15,7 @@ from pathlib import Path
 CONFIG = {
     "himalaya_path": "~/.local/bin/himalaya",
     "db_path": "~/.hermes/email-monitor/emails.db",
-    "accounts": ["account1", "account2", "account3"],  # Configure your Himalaya account names
+    "accounts": ["bamboo.ocean", "meditation", "raintea"],  # Himalaya account names
     "urgency_keywords": [
         "bill", "invoice", "payment", "due", "urgent", "action required",
         "deadline", "expire", "expiration", "security alert", "alert",
@@ -416,13 +416,8 @@ def run_monitor():
         for email in emails:
             email_id = email.get("id")
             
-            # Read body for urgent classification
-            body = ""
-            subject_lower = email.get("subject", "").lower()
-            
-            # Only read body if might be urgent (avoid reading newsletter bodies)
-            if any(kw in subject_lower for kw in CONFIG["urgency_keywords"][:5]):
-                body = read_email_body(account, email_id)
+            # Read email body for all emails
+            body = read_email_body(account, email_id)
             
             # Classify email
             category, urgency_score = classify_email(email, body)
