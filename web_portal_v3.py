@@ -1640,6 +1640,15 @@ def get_todays_emails_by_account(target_date=None):
 
         # Store full body for display
         body = row["body"] or ""
+        
+        # Build cleaned preview
+        body_preview = build_quick_summary(
+            subject=row["subject"],
+            sender_name=sender_name,
+            category=cat,
+            urgency=urgency,
+            body=body,
+        )
 
         email_data = {
             "email_id": row["email_id"],
@@ -1654,7 +1663,7 @@ def get_todays_emails_by_account(target_date=None):
             "urgency_class": urgency_class,
             "category": cat,
             "body": body,  # Full body stored
-            "body_preview": body[:200] + "..." if len(body) > 200 else body,  # Short preview
+            "body_preview": body_preview,  # Cleaned preview
         }
 
         accounts_dict[account_email]["emails"].append(email_data)
