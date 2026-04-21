@@ -348,15 +348,8 @@ HTML_TEMPLATE = """
             justify-content: center;
             color: white;
             font-weight: 600;
-            font-size: 14px;
-        }
-        
-        .account-bucket-avatar.gmail {
-            background: linear-gradient(135deg, #ea4335, #4285f4);
-        }
-        
-        .account-bucket-avatar.yahoo {
-            background: linear-gradient(135deg, #6001d2, #7b2cbf);
+            font-size: 12px;
+            background: var(--account-color, var(--accent));
         }
         
         .account-bucket-name {
@@ -758,7 +751,7 @@ HTML_TEMPLATE = """
                 {% for account in accounts %}
                 <div class="account-bucket" id="account-{{ account.id }}">
                     <div class="account-bucket-header" onclick="toggleAccount('{{ account.id }}')">
-                        <div class="account-bucket-avatar {{ account.type }}">{{ account.initial }}</div>
+                        <div class="account-bucket-avatar" style="--account-color: {{ account.color }}">{{ account.initial }}</div>
                         <div class="account-bucket-name">{{ account.email }}</div>
                         <div class="account-bucket-count">{{ account.count }}</div>
                         <div class="account-bucket-toggle">▼</div>
@@ -1065,7 +1058,7 @@ HTML_TEMPLATE = """
                 return `
                 <div class="account-bucket" id="account-${escapeHtml(account.id)}">
                     <div class="account-bucket-header" onclick="toggleAccount('${escapeHtml(account.id)}')">
-                        <div class="account-bucket-avatar ${escapeHtml(account.type)}">${escapeHtml(account.initial)}</div>
+                        <div class="account-bucket-avatar" style="--account-color: ${escapeHtml(account.color || '#4f46e5')}">${escapeHtml(account.initial)}</div>
                         <div class="account-bucket-name">${escapeHtml(account.email)}</div>
                         <div class="account-bucket-count">${account.count || 0}</div>
                         <div class="account-bucket-toggle">▼</div>
@@ -1452,6 +1445,42 @@ def get_calendar_events():
     except Exception as e:
         return {"events": [], "error": str(e)}
 
+def generate_account_avatar(email):
+    """Generate unique initial and color for an account email."""
+    # Extract local part (before @)
+    local_part = email.split('@')[0] if '@' in email else email
+    
+    # Generate initial from first character, or first letter of each word if separated by dots/underscores
+    parts = re.split(r'[._\-+]', local_part)
+    if len(parts) >= 2 and len(parts[0]) >= 1 and len(parts[1]) >= 1:
+        # Two initials (e.g., "john.smith" -> "JS")
+        initial = (parts[0][0] + parts[1][0]).upper()
+    else:
+        # Single initial
+        initial = local_part[0].upper() if local_part else '?'
+    
+    # Predefined color palette (distinct, accessible colors)
+    colors = [
+        "#ea4335",  # Red (Gmail-ish)
+        "#4285f4",  # Blue
+        "#34a853",  # Green
+        "#6001d2",  # Purple (Yahoo-ish)
+        "#fbbc04",  # Yellow/Gold
+        "#ff6d01",  # Orange
+        "#00acc1",  # Cyan
+        "#e91e63",  # Pink
+        "#9c27b0",  # Deep Purple
+        "#009688",  # Teal
+        "#795548",  # Brown
+        "#607d8b",  # Blue Grey
+    ]
+    
+    # Hash email to pick consistent color
+    hash_val = sum(ord(c) for c in email) % len(colors)
+    color = colors[hash_val]
+    
+    return initial, color
+
 def get_todays_emails_by_account(target_date=None):
     """Get emails for a given date grouped by account with category sub-groups."""
     conn = get_db_connection()
@@ -1495,19 +1524,14 @@ def get_todays_emails_by_account(target_date=None):
         account_email = row["account"] or "unknown"
 
         if account_email not in accounts_dict:
-            # Determine account type
-            if "yahoo" in account_email.lower():
-                account_type = "yahoo"
-                account_initial = "Y"
-            else:
-                account_type = "gmail"
-                account_initial = "G"
+            # Generate unique avatar for this account
+            account_initial, account_color = generate_account_avatar(account_email)
 
             accounts_dict[account_email] = {
                 "id": account_email.split("@")[0],
                 "email": account_email,
-                "type": account_type,
                 "initial": account_initial,
+                "color": account_color,
                 "count": 0,
                 "emails": [],
                 "categories": {cat: {"emails": [], "count": 0, "icon": category_icons[cat]} for cat in category_order},
