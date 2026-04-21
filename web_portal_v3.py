@@ -1822,12 +1822,13 @@ def api_email_detail(email_id):
 
 @app.route("/api/email/<email_id>/category", methods=["POST"])
 def api_update_category(email_id):
-    """Update the category of an email."""
+    """Update the category of an email and create a user rule to persist it."""
     data = request.get_json()
     if not data or 'category' not in data:
         return jsonify({"success": False, "error": "Missing category"}), 400
     
     new_category = data['category']
+    create_rule = data.get('create_rule', True)  # Default to creating a rule
     valid_categories = ['urgent', 'important', 'normal', 'newsletter', 'spam']
     
     if new_category not in valid_categories:
@@ -1836,23 +1837,68 @@ def api_update_category(email_id):
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Check if email exists
-    cursor.execute("SELECT email_id FROM emails WHERE email_id = ?", (email_id,))
+    # Get email details for rule creation
+    cursor.execute(
+        "SELECT sender_email, sender_name FROM emails WHERE email_id = ?",
+        (email_id,)
+    )
     row = cursor.fetchone()
     
     if not row:
         conn.close()
         return jsonify({"success": False, "error": "Email not found"}), 404
     
+    sender_email = row['sender_email'] or ''
+    sender_name = row['sender_name'] or ''
+    
     # Update the category
     cursor.execute(
         "UPDATE emails SET category = ? WHERE email_id = ?",
         (new_category, email_id)
     )
+    
+    # Create a user rule to persist this classification for future emails
+    rule_created = False
+    rule_id = None
+    if create_rule and sender_email:
+        try:
+            # Check if rule already exists
+            cursor.execute(
+                "SELECT id FROM user_rules WHERE rule_type = 'sender' AND LOWER(rule_value) = ?",
+                (sender_email.lower(),)
+            )
+            existing = cursor.fetchone()
+            
+            if existing:
+                # Update existing rule to new category
+                cursor.execute(
+                    "UPDATE user_rules SET category = ?, hit_count = hit_count + 1 WHERE id = ?",
+                    (new_category, existing['id'])
+                )
+                rule_id = existing['id']
+            else:
+                # Create new sender rule
+                cursor.execute(
+                    "INSERT INTO user_rules (rule_type, rule_value, category, created_at, hit_count) VALUES (?, ?, ?, ?, 1)",
+                    ('sender', sender_email, new_category, datetime.now().isoformat())
+                )
+                rule_id = cursor.lastrowid
+            
+            rule_created = True
+        except sqlite3.IntegrityError:
+            pass  # Rule already exists, ignore
+    
     conn.commit()
     conn.close()
     
-    return jsonify({"success": True, "email_id": email_id, "category": new_category})
+    return jsonify({
+        "success": True,
+        "email_id": email_id,
+        "category": new_category,
+        "rule_created": rule_created,
+        "rule_id": rule_id,
+        "sender": sender_email
+    })
 
 @app.route("/api/weather")
 def api_weather():
