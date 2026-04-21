@@ -1250,15 +1250,89 @@ def get_todays_stats(target_date=None):
 
 def build_quick_summary(subject, sender_name, category, urgency, body):
     """Create a readable summary for expandable email details."""
-    normalized_body = re.sub(r"\s+", " ", (body or "")).strip()
-    if normalized_body:
-        preview = normalized_body[:2000]
-        return preview + ("..." if len(normalized_body) > 2000 else "")
-
-    safe_subject = (subject or "(No subject)").strip()
-    safe_sender = (sender_name or "Unknown sender").strip()
-    safe_category = (category or "normal").capitalize()
-    return f"{safe_category} email from {safe_sender} about '{safe_subject}'. Urgency: {urgency}/10."
+    if not body:
+        safe_subject = (subject or "(No subject)").strip()
+        safe_sender = (sender_name or "Unknown sender").strip()
+        safe_category = (category or "normal").capitalize()
+        return f"{safe_category} email from {safe_sender} about '{safe_subject}'. Urgency: {urgency}/10."
+    
+    # Clean up the body text
+    text = body
+    
+    # Remove common email header patterns that appear in body
+    # Headers can end with single or double newlines
+    header_patterns = [
+        r'\AFrom:\s*.*?\n+',
+        r'\ATo:\s*.*?\n+',
+        r'\ASubject:\s*.*?\n+',
+        r'\ADate:\s*.*?\n+',
+        r'\ACc:\s*.*?\n+',
+        r'\ABcc:\s*.*?\n+',
+        r'\AReply-To:\s*.*?\n+',
+        r'(^|\n)From:\s*.*?\n+',
+        r'(^|\n)To:\s*.*?\n+',
+        r'(^|\n)Subject:\s*.*?\n+',
+        r'(^|\n)Date:\s*.*?\n+',
+        r'(^|\n)Cc:\s*.*?\n+',
+    ]
+    for pattern in header_patterns:
+        text = re.sub(pattern, '\n', text, flags=re.MULTILINE | re.IGNORECASE)
+    
+    # Remove lines that are just URLs (tracking links)
+    text = re.sub(r'^[\s]*https?://\S+[\s]*$', '', text, flags=re.MULTILINE)
+    
+    # Remove lines with just unicode whitespace/spacers (common in newsletters)
+    text = re.sub(r'^[\s\u2000-\u206F\u2800·•]+$', '', text, flags=re.MULTILINE)
+    
+    # Remove HTML-like tags
+    text = re.sub(r'<[^>]+>', '', text)
+    
+    # Remove excessive blank lines (3+ newlines -> 2 newlines)
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    
+    # Normalize multiple spaces to single space
+    text = re.sub(r'[ \t]+', ' ', text)
+    
+    # Strip leading/trailing whitespace
+    text = text.strip()
+    
+    # Extract meaningful paragraphs (at least 30 chars of actual content)
+    paragraphs = []
+    for p in text.split('\n\n'):
+        p = p.strip()
+        # Skip if too short or just whitespace/special chars
+        if len(p) >= 30 and not re.match(r'^[\s\u2000-\u206F·•]+$', p):
+            paragraphs.append(p)
+    
+    if not paragraphs:
+        # Fallback: take first 500 chars, cleaned up
+        summary = text[:500].strip()
+    else:
+        # Build summary from first 1-2 meaningful paragraphs
+        summary_parts = []
+        total_len = 0
+        for para in paragraphs[:2]:
+            if total_len + len(para) > 800:
+                remaining = 800 - total_len
+                if remaining > 100:
+                    summary_parts.append(para[:remaining].rstrip() + "...")
+                break
+            summary_parts.append(para)
+            total_len += len(para) + 2
+        
+        summary = '\n\n'.join(summary_parts)
+    
+    # Final cleanup - ensure we don't end mid-word
+    summary = summary.strip()
+    if len(summary) > 1000:
+        # Find last space before 1000 chars
+        trunc_point = summary.rfind(' ', 900, 1000)
+        if trunc_point > 0:
+            summary = summary[:trunc_point] + "..."
+        else:
+            summary = summary[:997] + "..."
+    
+    return summary
 
 def generate_email_summary(accounts, stats):
     """Generate a daily summary of urgent/important emails with action items."""
