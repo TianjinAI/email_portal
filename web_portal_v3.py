@@ -537,10 +537,30 @@ HTML_TEMPLATE = """
             gap: 8px;
             font-size: 11px;
             color: var(--text-muted);
+            align-items: center;
         }
         
         .email-sender {
             font-weight: 500;
+        }
+        
+        .account-badge {
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        
+        .account-badge.gmail {
+            background: linear-gradient(135deg, #ea4335, #4285f4);
+            color: white;
+        }
+        
+        .account-badge.yahoo {
+            background: linear-gradient(135deg, #6001d2, #7b2cbf);
+            color: white;
         }
         
         .email-right {
@@ -730,6 +750,7 @@ HTML_TEMPLATE = """
                                     <div class="email-subject">{{ email.subject }}</div>
                                     <div class="email-meta">
                                         <span class="email-sender">{{ email.sender_name or 'Unknown' }}</span>
+                                        <span class="account-badge {{ email.account_type }}">{{ email.account_initial }}</span>
                                         <span class="email-time">{{ email.time_str }}</span>
                                     </div>
                                 </div>
@@ -964,6 +985,7 @@ HTML_TEMPLATE = """
                                 <div class="email-subject">${escapeHtml(email.subject)}</div>
                                 <div class="email-meta">
                                     <span class="email-sender">${escapeHtml(email.sender_name || 'Unknown')}</span>
+                                    <span class="account-badge ${escapeHtml(email.account_type || 'gmail')}">${escapeHtml(email.account_initial || 'G')}</span>
                                     <span class="email-time">${escapeHtml(email.time_str || '')}</span>
                                 </div>
                             </div>
@@ -1560,6 +1582,15 @@ def get_todays_emails_by_category(target_date=None):
             body=body,
         )
 
+        # Determine account type and initial
+        account_email = row["account"] or "unknown"
+        if "yahoo" in account_email.lower():
+            account_type = "yahoo"
+            account_initial = "Y"
+        else:
+            account_type = "gmail"
+            account_initial = "G"
+
         categories_dict[cat]["emails"].append(
             {
                 "email_id": row["email_id"],
@@ -1567,6 +1598,9 @@ def get_todays_emails_by_category(target_date=None):
                 "sender_name": sender_name,
                 "sender_email": row["sender_email"] or "",
                 "sender_initial": sender_initial,
+                "account": account_email,
+                "account_type": account_type,
+                "account_initial": account_initial,
                 "date": row["date"],
                 "time_str": time_str,
                 "urgency_score": urgency,
