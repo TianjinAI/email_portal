@@ -1590,9 +1590,9 @@ def get_todays_emails_by_account(target_date=None):
 
     conn.close()
 
-    # Sort accounts: Gmail first, then Yahoo, then others
+    # Sort accounts by email domain (Gmail first), then alphabetically
     accounts = list(accounts_dict.values())
-    accounts.sort(key=lambda a: (0 if a["type"] == "gmail" else 1, a["email"]))
+    accounts.sort(key=lambda a: (0 if "gmail" in a["email"].lower() else 1, a["email"]))
 
     return accounts
 
