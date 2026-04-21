@@ -1,0 +1,41 @@
+# Database files (contains private email data)
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Log files (may contain sensitive info)
+*.log
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Environment and config files with credentials
+.env
+.env.local
+config.yaml
+config.yml
+secrets.yaml
+secrets.yml
+*.key
+*.pem
+
+# Runtime files
+*.pid
+*.sock
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
