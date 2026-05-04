@@ -215,6 +215,20 @@ HTML_TEMPLATE = """
             margin-bottom: 4px;
         }
         
+        .summary-email-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .misclassify-cb {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: var(--urgent-red);
+            flex-shrink: 0;
+        }
+        
         /* Sidebar */
         .sidebar {
             display: flex;
@@ -1193,6 +1207,39 @@ HTML_TEMPLATE = """
                 console.error('Failed to update calendar', err);
             }
         }
+        
+        async function handleMisclassify(checkbox) {
+            const emailId = checkbox.dataset.emailId;
+            if (!emailId) return;
+            
+            if (checkbox.checked) {
+                try {
+                    const res = await fetch(`/api/email/${emailId}/misclassify`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'}
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        const li = checkbox.closest('.summary-email-item');
+                        if (li) {
+                            li.style.opacity = '0.6';
+                            li.style.textDecoration = 'line-through';
+                            li.style.color = 'var(--text-muted)';
+                        }
+                    }
+                } catch (err) {
+                    console.error('Failed to mark as misclassified', err);
+                    checkbox.checked = false;
+                }
+            } else {
+                const li = checkbox.closest('.summary-email-item');
+                if (li) {
+                    li.style.opacity = '1';
+                    li.style.textDecoration = 'none';
+                    li.style.color = '';
+                }
+            }
+        }
     </script>
 </body>
 </html>
@@ -1340,7 +1387,9 @@ def generate_email_summary(accounts, stats):
     important_emails = []
     
     for account in accounts:
+        account_email = account.get("email", "unknown")
         for email in account.get("emails", []):
+            email["_account"] = account_email  # Attach account info for badges
             if email.get("category") == "urgent":
                 urgent_emails.append(email)
             elif email.get("category") == "important":
@@ -1361,31 +1410,7 @@ def generate_email_summary(accounts, stats):
     else:
         html_parts.append(f"<p><strong>{total_urgent}</strong> urgent and <strong>{total_important}</strong> important emails require attention.</p>")
     
-    # Urgent section
-    if urgent_emails:
-        html_parts.append("<h4 style='color: var(--urgent-red); margin: 10px 0 6px 0; font-size: 12px;'>🚨 URGENT - Action Required</h4>")
-        html_parts.append("<ul class='todo-list'>")
-        for email in urgent_emails[:5]:  # Top 5 urgent
-            subject = email.get("subject", "No subject")
-            sender = email.get("sender_name", "Unknown")
-            html_parts.append(f"<li><strong>{subject}</strong> from {sender}</li>")
-        if len(urgent_emails) > 5:
-            html_parts.append(f"<li><em>... and {len(urgent_emails) - 5} more urgent emails</em></li>")
-        html_parts.append("</ul>")
-    
-    # Important section
-    if important_emails:
-        html_parts.append("<h4 style='color: var(--important-orange); margin: 10px 0 6px 0; font-size: 12px;'>⚠️ IMPORTANT - Review When Possible</h4>")
-        html_parts.append("<ul class='todo-list'>")
-        for email in important_emails[:5]:  # Top 5 important
-            subject = email.get("subject", "No subject")
-            sender = email.get("sender_name", "Unknown")
-            html_parts.append(f"<li><strong>{subject}</strong> from {sender}</li>")
-        if len(important_emails) > 5:
-            html_parts.append(f"<li><em>... and {len(important_emails) - 5} more important emails</em></li>")
-        html_parts.append("</ul>")
-    
-    # Suggested actions
+    # Suggested actions (MOVED TO TOP)
     if urgent_emails or important_emails:
         html_parts.append("<h4 style='margin: 10px 0 6px 0; font-size: 12px;'>✅ Suggested Actions</h4>")
         html_parts.append("<ul class='todo-list'>")
@@ -1395,6 +1420,70 @@ def generate_email_summary(accounts, stats):
             html_parts.append("<li>Review important emails for updates and opportunities</li>")
         html_parts.append("<li>Unsubscribe from newsletters you don't read</li>")
         html_parts.append("</ul>")
+    
+    # Feedback info box
+    if urgent_emails or important_emails:
+        html_parts.append("<div style='margin: 8px 0; padding: 6px 10px; background: var(--bg-surface-2); border-radius: 6px; font-size: 11px; color: var(--text-muted);'>☑️ Check the box next to any email if the category looks wrong. Checked items will be sent back for reevaluation.</div>")
+    
+    # Helper to create account badge
+    def make_account_badge(account_email, large=False):
+        sz = "12px" if large else "10px"
+        pad = "2px 8px" if large else "1px 6px"
+        email_lower = account_email.lower()
+        if "raintea" in email_lower:
+            return f"<span style='display:inline-block;background:#10b981;color:white;padding:{pad};border-radius:3px;font-size:{sz};margin-right:6px;font-weight:600;'>R</span>"
+        elif "gmail" in email_lower or "bamboo" in email_lower:
+            return f"<span style='display:inline-block;background:#ea4335;color:white;padding:{pad};border-radius:3px;font-size:{sz};margin-right:6px;font-weight:600;'>BO</span>"
+        elif "yahoo" in email_lower or "meditation" in email_lower:
+            return f"<span style='display:inline-block;background:#6001d2;color:white;padding:{pad};border-radius:3px;font-size:{sz};margin-right:6px;font-weight:600;'>M</span>"
+        else:
+            return f"<span style='display:inline-block;background:#6b7280;color:white;padding:{pad};border-radius:3px;font-size:{sz};margin-right:6px;font-weight:600;'>?</span>"
+    
+    def get_account_label(account_email):
+        email_lower = account_email.lower()
+        if "raintea" in email_lower:
+            return "raintea"
+        elif "gmail" in email_lower or "bamboo" in email_lower:
+            return "bamboo.ocean"
+        elif "yahoo" in email_lower or "meditation" in email_lower:
+            return "meditation"
+        else:
+            return account_email
+    
+    # Render emails with checkboxes grouped by account
+    def render_email_list(emails, section_title, section_icon, section_color):
+        if not emails:
+            return []
+        parts = []
+        parts.append(f"<h4 style='color: var(--{section_color}); margin: 10px 0 6px 0; font-size: 12px;'>{section_icon} {section_title}</h4>")
+        
+        from collections import OrderedDict
+        grouped = OrderedDict()
+        for email in emails:
+            acct = email.get("_account", "unknown")
+            if acct not in grouped:
+                grouped[acct] = []
+            grouped[acct].append(email)
+        
+        for acct, acct_emails in grouped.items():
+            badge = make_account_badge(acct, large=True)
+            label = get_account_label(acct)
+            parts.append(f"<div style='margin: 4px 0 2px 0; font-size: 11px; font-weight: 600; color: var(--text-secondary);'>{badge} {label} <span style='color:var(--text-subtle);font-weight:400;'>({len(acct_emails)})</span></div>")
+            parts.append("<ul class='todo-list'>")
+            for email in acct_emails:
+                subject = email.get("subject", "No subject")
+                sender = email.get("sender_name", "Unknown")
+                email_id = email.get("email_id", "")
+                checkbox = f"<input type='checkbox' class='misclassify-cb' data-email-id='{email_id}' title='Check if mislabeled' onchange='handleMisclassify(this)'>"
+                parts.append(f"<li class='summary-email-item'>{checkbox} <strong>{subject}</strong> from {sender}</li>")
+            parts.append("</ul>")
+        return parts
+    
+    # Urgent section - all emails with checkboxes
+    html_parts.extend(render_email_list(urgent_emails, "URGENT - Action Required", "🚨", "urgent-red"))
+    
+    # Important section - all emails with checkboxes
+    html_parts.extend(render_email_list(important_emails, "IMPORTANT - Review When Possible", "🔶", "important-orange"))
     
     return "\n".join(html_parts)
 
@@ -1982,6 +2071,82 @@ def api_update_category(email_id):
         "rule_id": rule_id,
         "sender": sender_email
     })
+
+@app.route("/api/email/<email_id>/misclassify", methods=["POST"])
+def api_misclassify_email(email_id):
+    """Mark an email as potentially misclassified for reevaluation."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute(
+        "SELECT email_id, subject, sender_email, sender_name, category, urgency_score FROM emails WHERE email_id = ?",
+        (email_id,)
+    )
+    row = cursor.fetchone()
+    
+    if not row:
+        conn.close()
+        return jsonify({"success": False, "error": "Email not found"}), 404
+    
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS misclassified_emails (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email_id TEXT NOT NULL,
+            subject TEXT,
+            sender_email TEXT,
+            original_category TEXT,
+            urgency_score INTEGER,
+            flagged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            reviewed BOOLEAN DEFAULT 0,
+            new_category TEXT,
+            UNIQUE(email_id)
+        )
+    """)
+    
+    cursor.execute("""
+        INSERT INTO misclassified_emails (email_id, subject, sender_email, original_category, urgency_score, flagged_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(email_id) DO UPDATE SET flagged_at = ?, reviewed = 0, new_category = NULL
+    """, (
+        row["email_id"], row["subject"], row["sender_email"],
+        row["category"], row["urgency_score"], datetime.now().isoformat(),
+        datetime.now().isoformat()
+    ))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({
+        "success": True,
+        "email_id": email_id,
+        "message": "Email flagged for reevaluation",
+        "original_category": row["category"]
+    })
+
+@app.route("/api/misclassified", methods=["GET"])
+def api_list_misclassified():
+    """List all flagged emails for review."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS misclassified_emails (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email_id TEXT NOT NULL,
+            subject TEXT,
+            sender_email TEXT,
+            original_category TEXT,
+            urgency_score INTEGER,
+            flagged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            reviewed BOOLEAN DEFAULT 0,
+            new_category TEXT,
+            UNIQUE(email_id)
+        )
+    """)
+    cursor.execute("SELECT * FROM misclassified_emails WHERE reviewed = 0 ORDER BY flagged_at DESC")
+    items = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return jsonify({"misclassified": items, "count": len(items)})
+
 
 @app.route("/api/weather")
 def api_weather():

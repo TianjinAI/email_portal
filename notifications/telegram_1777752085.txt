@@ -1,0 +1,30 @@
+TARGET:telegram:Shaobin Sun (dm)
+MESSAGE:🚨 *Urgent Emails Detected*
+
+*[raintea]* Shaobin, move to a mobile plan that fits you even better: Unlimited Plus\.
+From: Verizon Wireless \(no\-reply@customer\.verizon\.com\)
+Date: 2026\-05\-02 07:27\-07:00
+Urgency: 14/10
+
+*[meditation]* 🟠 Don’t blame the Fed, it’s the capex
+From: Investing\.com \(newsletter@investingmail\.com\)
+Date: 2026\-05\-02 14:01\+00:00
+Urgency: 8/10
+
+*[raintea]* Notification: Max Mr math ta @ Sat May 2, 2026 10:30am \- 11:30am \(CDT\) \(raintea06@gmail\.com\)
+From: Google Calendar \(calendar\-notification@google\.com\)
+Date: 2026\-05\-02 14:59\+00:00
+Urgency: 0/10
+
+*[raintea]* Notification: College application essay and financial aid application @ Sat May 2, 2026 10am \- 11am \(CDT\) \(raintea06@gmail\.com\)
+From: Google Calendar \(calendar\-notification@google\.com\)
+Date: 2026\-05\-02 14:30\+00:00
+Urgency: 0/10
+
+*[raintea]* Payment Receipt \- Success
+From: None \(ic\.messenger@hinsdale86\.org\)
+Date: 2026\-05\-02 13:59\+00:00
+Urgency: 0/10
+
+\.\.\. and 2 more urgent emails\.
+_Check the web portal for full details\._

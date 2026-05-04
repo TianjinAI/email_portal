@@ -8,6 +8,8 @@ import subprocess
 import sqlite3
 import re
 import os
+import urllib.request
+import urllib.error
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -34,7 +36,17 @@ CONFIG = {
         "convertkit", "sendgrid", "sparkpost", "amazonses",
         "trulyrecipes.com", "happyglowwin", "glowhopefun",
         "yh2569.com", "odontocotta.com", "mcknd5.com", "h2y-uae.com",
-        "smartjoyhope", "fastsmartcool", "lifeonaire"
+        "smartjoyhope", "fastsmartcool", "lifeonaire",
+        "cfainstitute.org", "axios.com", "politico.com",
+        "nytimes.com", "wsj.com", "ft.com",
+        "reuters.com", "theinformation.com", "semafor.com",
+        "theverge.com", "wired.com", "technologyreview.com",
+        "nybooks.com", "economist.com", "hbr.org",
+        "expedia.com", "tripadvisor.com", "zerohedge.com",
+        "fitbit.com", "nextdoor.com",
+        "yahoogroups.com", "google.com", "mail.google.com",
+        "readwise.io", "readwise.net",
+        "youmayknow.com"
     ],
     "spam_indicators": [
         "75% off", "free trial", "limited time", "act now",
@@ -78,29 +90,40 @@ def get_user_rule_category(sender_email, sender_name, subject):
         conn.close()
         return row[1], row[0]
     
-    # 2. Domain match
+    # 2. Domain match (suffix-based: rule "bloomberg.com" matches "news.bloomberg.com")
+    domain_result = None
     if domain:
         cursor.execute(
-            "SELECT id, category FROM user_rules WHERE rule_type = 'domain' AND LOWER(rule_value) = ?",
-            (domain,)
+            "SELECT id, category, rule_value FROM user_rules WHERE rule_type = 'domain'"
         )
-        row = cursor.fetchone()
-        if row:
-            cursor.execute("UPDATE user_rules SET hit_count = hit_count + 1 WHERE id = ?", (row[0],))
-            conn.commit()
-            conn.close()
-            return row[1], row[0]
+        for row in cursor.fetchall():
+            rule_domain = row[2].lower()
+            if domain == rule_domain or domain.endswith('.' + rule_domain):
+                domain_result = (row[0], row[1])
+                break
     
-    # 3. Subject contains
+    # 3. Subject contains — checked BEFORE returning domain result
     cursor.execute(
         "SELECT id, category, rule_value FROM user_rules WHERE rule_type = 'subject_contains'"
     )
+    # Subject urgent/important overrides domain newsletter/spam
+    PRIORITY = {"urgent": 3, "important": 2, "normal": 1, "newsletter": 0, "spam": 0}
     for row in cursor.fetchall():
         if row[2].lower() in subject_lower:
-            cursor.execute("UPDATE user_rules SET hit_count = hit_count + 1 WHERE id = ?", (row[0],))
-            conn.commit()
-            conn.close()
-            return row[1], row[0]
+            # If subject rule is higher priority than domain rule, use it
+            if domain_result is None or PRIORITY.get(row[1], 0) > PRIORITY.get(domain_result[1], 0):
+                cursor.execute("UPDATE user_rules SET hit_count = hit_count + 1 WHERE id = ?", (row[0],))
+                conn.commit()
+                conn.close()
+                return row[1], row[0]
+            # Otherwise subject matched but domain is same or higher priority — fall through
+    
+    # No subject override — return domain result if any
+    if domain_result:
+        cursor.execute("UPDATE user_rules SET hit_count = hit_count + 1 WHERE id = ?", (domain_result[0],))
+        conn.commit()
+        conn.close()
+        return domain_result[1], domain_result[0]
     
     conn.close()
     return None, None
@@ -215,9 +238,9 @@ def read_email_body(account, email_id):
 
 def classify_email(email, body=""):
     """Classify an email as urgent, newsletter, spam, or normal."""
-    subject = email.get("subject", "")
-    sender_email = (email.get("from", {}).get("addr") or "").lower()
-    sender_name = (email.get("from", {}).get("name") or "").lower()
+    subject = email.get("subject", "") or ""
+    sender_email = ((email.get("from") or {}).get("addr") or "").lower()
+    sender_name = ((email.get("from") or {}).get("name") or "").lower()
     
     # First, check user-defined rules
     user_category, rule_id = get_user_rule_category(sender_email, sender_name, subject)
@@ -246,6 +269,7 @@ def classify_email(email, body=""):
                 break
     
     # Check for urgency keywords
+    was_newsletter = False
     if category != "spam":
         for keyword in CONFIG["urgency_keywords"]:
             if keyword.lower() in all_text:
@@ -269,8 +293,12 @@ def classify_email(email, body=""):
             urgency_score += 4
     
     # Determine final category based on urgency score
-    if urgency_score >= 3:
-        category = "urgent"
+    # Newsletters: only urgent if score is VERY high (≥8, e.g. real bank breach)
+    if urgency_score >= 5:
+        if category == "newsletter" and urgency_score < 8:
+            pass  # Keep as newsletter unless truly urgent (≥8)
+        else:
+            category = "urgent"
     elif category == "normal" and urgency_score > 0:
         category = "important"
     
@@ -281,7 +309,7 @@ def store_email(email, account, body, category, urgency_score):
     conn = sqlite3.connect(get_db_path())
     cursor = conn.cursor()
     
-    sender = email.get("from", {})
+    sender = email.get("from") or {}
     flags = json.dumps(email.get("flags", []))
     email_id = str(email.get("id"))
     
@@ -367,35 +395,67 @@ def mark_as_notified(email_ids):
     conn.close()
 
 def send_telegram_notification(urgent_emails):
-    """Send Telegram notification for urgent emails."""
+    """Send Telegram notification for urgent emails via Bot API."""
     if not urgent_emails:
         return
     
-    message = "**🚨 Urgent Emails Detected**\n\n"
+    message = "🚨 *Urgent Emails Detected*\n\n"
     
     for email in urgent_emails[:5]:  # Limit to 5 most urgent
         email_id, account, subject, sender_name, sender_email, date, score = email
         account_short = account.split("@")[0] if "@" in account else account
         
-        message += f"**[{account_short}]** {subject}\n"
-        message += f"From: {sender_name} ({sender_email})\n"
-        message += f"Date: {date}\n"
+        # Escape MarkdownV2 special chars
+        def esc(s):
+            return re.sub(r'([_*\[\]()~`>#+\-=|{}.!])', r'\\\1', str(s))
+        
+        message += f"*[{esc(account_short)}]* {esc(subject)}\n"
+        message += f"From: {esc(sender_name)} \\({esc(sender_email)}\\)\n"
+        message += f"Date: {esc(date)}\n"
         message += f"Urgency: {score}/10\n\n"
     
     if len(urgent_emails) > 5:
-        message += f"... and {len(urgent_emails) - 5} more urgent emails.\n"
+        message += f"\\.\\.\\. and {len(urgent_emails) - 5} more urgent emails\\.\n"
     
-    message += "\n_Check the web portal for full details._"
+    message += "_Check the web portal for full details\\._"
     
-    # Use Hermes send_message tool via subprocess (calling hermes CLI)
-    # Or we can use the Telegram API directly if we have the bot token
-    print(f"Would send Telegram message:\n{message}")
+    # Load credentials from .env
+    env_path = Path("~/.hermes/.env").expanduser()
+    bot_token = None
+    chat_id = None
+    if env_path.exists():
+        with open(env_path) as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith("TELEGRAM_BOT_TOKEN="):
+                    bot_token = line.split("=", 1)[1].strip()
+                if line.startswith("TELEGRAM_HOME_CHANNEL="):
+                    chat_id = line.split("=", 1)[1].strip()
     
-    # For now, we'll use a simple approach - write to a notification file
-    # that can be picked up by another process
+    if bot_token and chat_id:
+        try:
+            url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+            data = json.dumps({
+                "chat_id": chat_id,
+                "text": message,
+                "parse_mode": "MarkdownV2"
+            }).encode("utf-8")
+            req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
+            resp = urllib.request.urlopen(req, timeout=10)
+            result = json.loads(resp.read().decode())
+            if result.get("ok"):
+                print(f"✅ Telegram notification sent for {len(urgent_emails)} urgent emails")
+            else:
+                print(f"❌ Telegram API error: {result}")
+        except Exception as e:
+            print(f"❌ Failed to send Telegram notification: {e}")
+    else:
+        print(f"⚠️ No TELEGRAM_BOT_TOKEN or TELEGRAM_HOME_CHANNEL in .env — skipping notification")
+        print(f"Would send:\n{message}")
+    
+    # Also write to notification file as backup
     notify_path = Path("~/.hermes/email-monitor/notifications").expanduser()
     notify_path.mkdir(parents=True, exist_ok=True)
-    
     with open(notify_path / "urgent_pending.txt", "w") as f:
         f.write(message)
 
