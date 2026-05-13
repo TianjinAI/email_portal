@@ -37,6 +37,8 @@ CONFIG = {
         "trulyrecipes.com", "happyglowwin", "glowhopefun",
         "yh2569.com", "odontocotta.com", "mcknd5.com", "h2y-uae.com",
         "smartjoyhope", "fastsmartcool", "lifeonaire",
+        "happysmilejoy70.com", "glowquickjoy27.com", "happykindfun278.com",
+        "happygetsweet8.com", "happygracejoy.club",
         "cfainstitute.org", "axios.com", "politico.com",
         "nytimes.com", "wsj.com", "ft.com",
         "reuters.com", "theinformation.com", "semafor.com",
@@ -206,7 +208,7 @@ def fetch_emails(account):
     # Get emails from last 24 hours
     result = subprocess.run(
         [str(himalaya), "envelope", "list", "--account", account, 
-         "--page-size", "50", "--output", "json"],
+         "--page-size", "20", "--output", "json"],
         capture_output=True, text=True, timeout=60
     )
     
@@ -459,9 +461,12 @@ def send_telegram_notification(urgent_emails):
     with open(notify_path / "urgent_pending.txt", "w") as f:
         f.write(message)
 
-def run_monitor():
-    """Main monitoring loop."""
-    print(f"\n=== Email Monitor Run: {datetime.now().isoformat()} ===")
+def run_monitor(cron_mode=False):
+    """Main monitoring loop.
+    cron_mode: If True, skip body reads (faster, classify by subject/sender only).
+    """
+    mode_label = " [CRON]" if cron_mode else ""
+    print(f"\n=== Email Monitor Run{mode_label}: {datetime.now().isoformat()} ===")
     
     # Initialize database
     init_database()
@@ -476,11 +481,17 @@ def run_monitor():
         for email in emails:
             email_id = email.get("id")
             
-            # Read email body for all emails
-            body = read_email_body(account, email_id)
+            # Quick classify without body (uses subject/sender only)
+            category, urgency_score = classify_email(email, body="")
             
-            # Classify email
-            category, urgency_score = classify_email(email, body)
+            # Only read body if might be urgent or needs body-based classification
+            # In cron mode, skip body reads entirely (3 accounts x N emails = many 30s timeouts)
+            body = ""
+            if not cron_mode and (urgency_score > 0 or category == "normal"):
+                # Might be urgent or unclassified — read body for better classification
+                body = read_email_body(account, email_id)
+                # Re-classify with body
+                category, urgency_score = classify_email(email, body)
             
             # Store in database
             store_email(email, account, body[:5000], category, urgency_score)
@@ -503,4 +514,9 @@ def run_monitor():
     print("\n=== Monitor run complete ===")
 
 if __name__ == "__main__":
-    run_monitor()
+    import argparse
+    parser = argparse.ArgumentParser(description="Email Monitor")
+    parser.add_argument("--cron", action="store_true",
+                        help="Cron mode: skip body reads, classify by subject/sender only")
+    args = parser.parse_args()
+    run_monitor(cron_mode=args.cron)

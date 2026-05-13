@@ -1,18 +1,8 @@
 🚨 *Urgent Emails Detected*
 
-*[bamboo\.ocean]* GPT\-5\.5 Outperforms \(and Hallucinates\), Kimi K2\.6 Leads Open LLMs, AI Strains Climate Pledges, Strategic Thinking in LLMs vs\. Humans
-From: The Batch @ DeepLearning\.AI \(thebatch@deeplearning\.ai\)
-Date: 2026\-05\-01 12:05\-07:00
-Urgency: 17/10
-
-*[bamboo\.ocean]* Your iCloud storage is full\.
-From: iCloud \(noreply@email\.apple\.com\)
-Date: 2026\-05\-01 12:15\+00:00
-Urgency: 15/10
-
-*[bamboo\.ocean]* Your iCloud storage is full\.
-From: iCloud \(noreply@email\.apple\.com\)
-Date: 2026\-05\-01 12:15\+00:00
-Urgency: 15/10
+*[raintea]* Important Update Regarding Spring 2026 Online ACT Scores
+From: Hinsdale Township High School District 86 via ParentSquare \(donotreply\+5b223447\-a32a\-56a6\-ac93\-bdaab58ec02e@parentsquare\.com\)
+Date: 2026\-05\-13 21:04\+00:00
+Urgency: 0/10
 
 _Check the web portal for full details\._

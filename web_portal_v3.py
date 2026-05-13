@@ -5,7 +5,7 @@ Email Monitor Web Portal V3 - Account-based view, expandable summaries.
 
 from flask import Flask, render_template_string, jsonify, request
 import sqlite3
-from datetime import datetime, date
+from datetime import datetime, date, timedelta, timezone
 from pathlib import Path
 import os
 import re
@@ -13,6 +13,7 @@ import subprocess
 import json
 import urllib.request
 import urllib.error
+import sys
 
 app = Flask(__name__)
 
@@ -51,6 +52,13 @@ HTML_TEMPLATE = """
             --newsletter-bg: rgba(22,163,74,0.08);
             --gmail-color: #ea4335;
             --yahoo-color: #6001d2;
+            /* Anti-slop: tinted shadows, focus ring, grain */
+            --shadow-tint: rgba(40, 40, 60, 0.06);
+            --shadow-tint-md: rgba(40, 40, 60, 0.10);
+            --shadow-tint-lg: rgba(40, 40, 60, 0.14);
+            --focus-ring: rgba(79, 70, 229, 0.35);
+            --card-border-highlight: rgba(255, 255, 255, 0.6);
+            --grain-opacity: 0.025;
         }
         
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -58,10 +66,15 @@ HTML_TEMPLATE = """
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: var(--bg-canvas);
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
             color: var(--text-primary);
             line-height: 1.6;
-            min-height: 100vh;
+            min-height: 100dvh;
             font-feature-settings: 'cv01', 'ss03';
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            max-width: 100vw;
+            overflow-x: hidden;
         }
         
         /* Top Header */
@@ -76,6 +89,9 @@ HTML_TEMPLATE = """
             top: 0;
             z-index: 100;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            -webkit-backdrop-filter: blur(8px);
+            backdrop-filter: blur(8px);
+            background: rgba(255,255,255,0.88);
         }
         
         .header-left {
@@ -121,12 +137,25 @@ HTML_TEMPLATE = """
             font-size: 12px;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.15s;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: inherit;
         }
         
         .refresh-btn:hover {
             background: var(--bg-surface-3);
             color: var(--text-primary);
+            box-shadow: 0 1px 4px var(--shadow-tint);
+            border-color: var(--border-strong);
+        }
+
+        .refresh-btn:active {
+            transform: scale(0.97);
+            box-shadow: none;
+        }
+
+        .refresh-btn:focus-visible {
+            outline: 2px solid var(--focus-ring);
+            outline-offset: 2px;
         }
         
         .last-sync {
@@ -163,6 +192,8 @@ HTML_TEMPLATE = """
             font-size: 14px;
             font-weight: 600;
             color: var(--text-primary);
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.01em;
         }
         
         .stat-label {
@@ -184,9 +215,11 @@ HTML_TEMPLATE = """
         .summary-section {
             background: var(--bg-panel);
             border: 1px solid var(--border-subtle);
+            border-top-color: var(--card-border-highlight);
             border-radius: 8px;
             padding: 12px 16px;
             margin-bottom: 16px;
+            box-shadow: 0 1px 3px var(--shadow-tint), 0 4px 12px var(--shadow-tint);
         }
         
         .summary-header {
@@ -239,8 +272,15 @@ HTML_TEMPLATE = """
         .sidebar-card {
             background: var(--bg-panel);
             border: 1px solid var(--border-subtle);
+            border-top-color: var(--card-border-highlight);
             border-radius: 8px;
             padding: 12px;
+            box-shadow: 0 1px 3px var(--shadow-tint), 0 4px 12px var(--shadow-tint);
+            transition: box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sidebar-card:hover {
+            box-shadow: 0 2px 6px var(--shadow-tint-md), 0 8px 24px var(--shadow-tint);
         }
         
         .sidebar-title {
@@ -329,8 +369,15 @@ HTML_TEMPLATE = """
             margin: 0 0 16px 0;
             background: var(--bg-panel);
             border: 1px solid var(--border-subtle);
+            border-top-color: var(--card-border-highlight);
             border-radius: 8px;
             overflow: hidden;
+            box-shadow: 0 1px 3px var(--shadow-tint), 0 4px 14px var(--shadow-tint);
+            transition: box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .account-bucket:hover {
+            box-shadow: 0 2px 6px var(--shadow-tint-md), 0 8px 28px var(--shadow-tint);
         }
         
         .account-bucket-header {
@@ -339,13 +386,18 @@ HTML_TEMPLATE = """
             gap: 12px;
             padding: 12px 16px;
             cursor: pointer;
-            transition: all 0.15s ease;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             user-select: none;
             background: var(--bg-surface-2);
             border-bottom: 1px solid var(--border-subtle);
         }
         
         .account-bucket-header:hover {
+            background: var(--bg-surface-3);
+        }
+
+        .account-bucket-header:active {
+            transform: scale(0.995);
             background: var(--bg-surface-3);
         }
         
@@ -380,6 +432,7 @@ HTML_TEMPLATE = """
             padding: 2px 10px;
             border-radius: 12px;
             margin-left: auto;
+            font-variant-numeric: tabular-nums;
         }
         
         .account-bucket-toggle {
@@ -419,12 +472,16 @@ HTML_TEMPLATE = """
             gap: 8px;
             padding: 8px 12px;
             cursor: pointer;
-            transition: background 0.15s ease;
+            transition: background 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             user-select: none;
         }
         
         .category-subgroup-header:hover {
             background: var(--bg-surface-2);
+        }
+
+        .category-subgroup-header:active {
+            transform: scale(0.998);
         }
         
         .category-subgroup-icon {
@@ -445,6 +502,7 @@ HTML_TEMPLATE = """
             padding: 1px 6px;
             border-radius: 10px;
             margin-left: auto;
+            font-variant-numeric: tabular-nums;
         }
         
         .category-subgroup-toggle {
@@ -510,13 +568,20 @@ HTML_TEMPLATE = """
             background: var(--bg-surface-2);
             border-radius: 6px;
             border: 1px solid var(--border-subtle);
+            border-top-color: var(--card-border-highlight);
             overflow: hidden;
-            transition: all 0.15s ease;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 1px 2px var(--shadow-tint);
+        }
+        .email-card:hover {
+            border-color: rgba(79, 70, 229, 0.25);
+            box-shadow: 0 2px 8px var(--shadow-tint-md), 0 6px 20px var(--shadow-tint);
+            transform: translateY(-1px);
         }
 
-        .email-card:hover {
-            border-color: var(--accent);
-            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        .email-card:active {
+            transform: scale(0.99) translateY(0);
+            box-shadow: 0 1px 2px var(--shadow-tint);
         }
 
         .email-card.urgent-card {
@@ -615,6 +680,25 @@ HTML_TEMPLATE = """
         .urgency-badge.high { background: var(--urgent-red); }
         .urgency-badge.medium { background: var(--important-orange); }
         .urgency-badge.low { background: var(--newsletter-green); }
+        
+        .unsub-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            padding: 2px 4px;
+            border-radius: 4px;
+            opacity: 0.5;
+            transition: opacity 0.2s;
+            line-height: 1;
+        }
+        .unsub-btn:hover {
+            opacity: 1;
+            background: rgba(225, 29, 72, 0.1);
+        }
+        .unsub-btn:disabled {
+            cursor: default;
+        }
         
         .email-time {
             font-size: 10px;
@@ -849,10 +933,13 @@ HTML_TEMPLATE = """
             
             <!-- Calendar Card -->
             <div class="sidebar-card">
-                <div class="sidebar-title">📅 Today's Events ({{ calendar.events|length }})</div>
+                <div class="sidebar-title">📅 Upcoming Events</div>
                 <div class="calendar-events" id="calendar-events">
                     {% if calendar.events %}
                         {% for event in calendar.events %}
+                        {% if event.type == "header" %}
+                        <div style="font-size:11px;font-weight:700;color:var(--accent);padding:8px 8px 2px;text-transform:uppercase;letter-spacing:0.5px">{{ event.day }}</div>
+                        {% else %}
                         <div class="calendar-event">
                             <div class="event-time">{{ event.time }}</div>
                             <div class="event-title">{{ event.summary }}</div>
@@ -860,6 +947,7 @@ HTML_TEMPLATE = """
                             <div class="event-location">📍 {{ event.location }}</div>
                             {% endif %}
                         </div>
+                        {% endif %}
                         {% endfor %}
                     {% else %}
                         <div style="font-size: 12px; color: var(--text-muted); padding: 8px;">
@@ -936,6 +1024,11 @@ HTML_TEMPLATE = """
                                 ${subject ? `<button onclick="event.stopPropagation(); createRule('subject_contains', '${subject.substring(0, 30)}', '${data.category}', '${emailId}')" style="padding: 3px 8px; font-size: 10px; border: 1px solid var(--border-strong); background: var(--bg-surface-2); color: var(--text-secondary); border-radius: 3px; cursor: pointer;" title="Apply to all emails with subject containing '${subject.substring(0, 30)}...'">Subject: ${subject.substring(0, 20)}${subject.length > 20 ? '...' : ''}</button>` : ''}
                             </div>
                             <div id="rule-msg-${emailId}" style="font-size: 10px; margin-top: 6px; color: var(--accent);"></div>
+                        </div>
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-subtle);">
+                            <button onclick="event.stopPropagation(); handleUnsubscribeFromDetail('${emailId}')" 
+                                    style="padding: 6px 14px; font-size: 11px; border: 1px solid #e11d48; background: transparent; color: #e11d48; border-radius: 4px; cursor: pointer;">✂️ Mark for Unsubscribe & Delete</button>
+                            <div id="unsub-msg-${emailId}" style="font-size: 10px; margin-top: 6px; color: var(--accent);"></div>
                         </div>
                     </div>
                 `;
@@ -1048,6 +1141,7 @@ HTML_TEMPLATE = """
                                 </div>
                                 <div class="email-right">
                                     ${email.urgency_score ? `<div class="urgency-badge ${escapeHtml(email.urgency_class)}">${escapeHtml(email.urgency_display)}</div>` : ''}
+                                    <button class="unsub-btn" data-email-id="${escapeHtml(email.email_id)}" onclick="event.stopPropagation(); handleUnsubscribe(this)" title="Mark for unsubscribe & delete">✂️</button>
                                 </div>
                             </div>
                             <div class="email-summary" id="summary-${escapeHtml(email.email_id)}">
@@ -1195,7 +1289,7 @@ HTML_TEMPLATE = """
             try {
                 const res = await fetch('/api/calendar');
                 const data = await res.json();
-                const countEl = document.getElementById('calendar-count');
+                const countEl = document.getElementById('calendar-count');  // may not exist with new layout
                 const widget = document.getElementById('calendar-widget');
                 if (countEl && data) {
                     countEl.textContent = data.events ? data.events.length : '0';
@@ -1238,6 +1332,50 @@ HTML_TEMPLATE = """
                     li.style.textDecoration = 'none';
                     li.style.color = '';
                 }
+            }
+        }
+        
+        async function handleUnsubscribe(btn) {
+            const emailId = btn.dataset.emailId;
+            if (!emailId) return;
+            
+            try {
+                const res = await fetch(`/api/email/${emailId}/unsubscribe`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                const data = await res.json();
+                if (data.success) {
+                    btn.textContent = '✅';
+                    btn.disabled = true;
+                    btn.style.opacity = '0.6';
+                } else {
+                    btn.textContent = '❌';
+                }
+            } catch (err) {
+                console.error('Failed to mark for unsubscribe', err);
+                btn.textContent = '❌';
+            }
+        }
+        
+        async function handleUnsubscribeFromDetail(emailId) {
+            if (!emailId) return;
+            const msgEl = document.getElementById('unsub-msg-' + emailId);
+            try {
+                const res = await fetch(`/api/email/${emailId}/unsubscribe`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                const data = await res.json();
+                if (msgEl) {
+                    if (data.success) {
+                        msgEl.textContent = '✅ Marked for unsubscribe & delete';
+                    } else {
+                        msgEl.textContent = '❌ ' + (data.error || 'Failed');
+                    }
+                }
+            } catch (err) {
+                if (msgEl) msgEl.textContent = '❌ Network error';
             }
         }
     </script>
@@ -1475,7 +1613,7 @@ def generate_email_summary(accounts, stats):
                 sender = email.get("sender_name", "Unknown")
                 email_id = email.get("email_id", "")
                 checkbox = f"<input type='checkbox' class='misclassify-cb' data-email-id='{email_id}' title='Check if mislabeled' onchange='handleMisclassify(this)'>"
-                parts.append(f"<li class='summary-email-item'>{checkbox} <strong>{subject}</strong> from {sender}</li>")
+                parts.append(f"<li class='summary-email-item'>{checkbox} <strong>{subject}</strong> from {sender} <button class='unsub-btn' data-email-id='{email_id}' onclick='handleUnsubscribe(this)' title='Mark for unsubscribe & delete' style='font-size:11px;opacity:0.4;'>✂️</button></li>")
             parts.append("</ul>")
         return parts
     
@@ -1565,43 +1703,74 @@ def get_calendar_events():
         if not gapi.exists():
             return {"events": [], "error": "Google Workspace not configured"}
         
-        # Check if authenticated
+        # Use the hermes-agent venv python to ensure correct module resolution
+        venv_python = next(
+            (p for p in [
+                Path.home() / ".hermes" / "hermes-agent" / "venv" / "bin" / "python3",
+                Path.home() / ".hermes" / "hermes-agent" / ".venv" / "bin" / "python3",
+            ] if p.exists()),
+            None
+        )
+        if not venv_python:
+            return {"events": [], "error": "Hermes Agent venv not found"}
+        
+        python_bin = str(venv_python)
         setup = Path.home() / ".hermes" / "skills" / "productivity" / "google-workspace" / "scripts" / "setup.py"
         check_result = subprocess.run(
-            ["python3.11", str(setup), "--check"],
+            [python_bin, str(setup), "--check"],
             capture_output=True, text=True, timeout=10
         )
         
         if "AUTHENTICATED" not in check_result.stdout:
             return {"events": [], "error": "Google Calendar not authenticated"}
         
-        # Get today's events
+        # Get events for today + next 2 days
+        from datetime import timedelta
         today = date.today()
         start = today.isoformat() + "T00:00:00Z"
-        end = today.isoformat() + "T23:59:59Z"
+        end = (today + timedelta(days=2)).isoformat() + "T23:59:59Z"
         
         result = subprocess.run(
-            ["python3.11", str(gapi), "calendar", "list", "--start", start, "--end", end],
+            [python_bin, str(gapi), "calendar", "list", "--start", start, "--end", end],
             capture_output=True, text=True, timeout=15
         )
         
         if result.returncode == 0:
             events = json.loads(result.stdout)
-            # Format events for display
-            formatted = []
+            # Compute "today" in the user's timezone (CDT = UTC-5)
+            user_tz = timezone(timedelta(hours=-5))  # CDT
+            user_today = datetime.now(user_tz).date()
+            day_labels = {
+                user_today.isoformat(): "Today",
+                (user_today + timedelta(days=1)).isoformat(): "Tomorrow",
+                (user_today + timedelta(days=2)).isoformat(): (user_today + timedelta(days=2)).strftime("%A"),
+            }
+            # Group events by day (using event's local date)
+            grouped = {}
             for e in events:
                 start_time = e.get("start", "")
-                # Parse ISO time
                 if "T" in start_time:
+                    day_key = start_time.split("T")[0]
                     time_part = start_time.split("T")[1][:5]
                 else:
+                    day_key = start_time
                     time_part = "All day"
-                formatted.append({
+                day_label = day_labels.get(day_key, day_key)
+                if day_label not in grouped:
+                    grouped[day_label] = []
+                grouped[day_label].append({
                     "time": time_part,
                     "summary": e.get("summary", "No title"),
                     "location": e.get("location", ""),
                     "id": e.get("id", "")
                 })
+            # Flatten with day headers in order: Today, Tomorrow, then others
+            formatted = []
+            for day_label in ["Today", "Tomorrow"] + [v for k, v in sorted(day_labels.items()) if v not in ("Today", "Tomorrow")]:
+                if day_label in grouped:
+                    formatted.append({"type": "header", "day": day_label})
+                    for ev in grouped[day_label]:
+                        formatted.append({"type": "event", **ev})
             return {"events": formatted, "error": None}
         else:
             return {"events": [], "error": f"Calendar API error: {result.stderr}"}
@@ -2146,6 +2315,90 @@ def api_list_misclassified():
     items = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return jsonify({"misclassified": items, "count": len(items)})
+
+
+# Unsubscribe Request API Endpoints
+
+@app.route("/api/email/<email_id>/unsubscribe", methods=["POST"])
+def api_unsubscribe_email(email_id):
+    """Mark an email for unsubscribe and deletion."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Create table if not exists
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS unsubscribe_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email_id TEXT NOT NULL UNIQUE,
+            account TEXT,
+            subject TEXT,
+            sender_email TEXT,
+            sender_name TEXT,
+            date TEXT,
+            status TEXT DEFAULT 'pending',
+            flagged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            processed_at TEXT,
+            result TEXT
+        )
+    """)
+    
+    # Get email info
+    cursor.execute(
+        "SELECT email_id, account, subject, sender_email, sender_name, date FROM emails WHERE email_id = ?",
+        (email_id,)
+    )
+    row = cursor.fetchone()
+    
+    if not row:
+        conn.close()
+        return jsonify({"success": False, "error": "Email not found"}), 404
+    
+    # Insert or update (re-flag if already processed)
+    cursor.execute("""
+        INSERT INTO unsubscribe_requests (email_id, account, subject, sender_email, sender_name, date, status, flagged_at)
+        VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)
+        ON CONFLICT(email_id) DO UPDATE SET status = 'pending', flagged_at = ?, processed_at = NULL, result = NULL
+    """, (
+        row["email_id"], row["account"], row["subject"],
+        row["sender_email"], row["sender_name"], row["date"],
+        datetime.now().isoformat(), datetime.now().isoformat()
+    ))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({
+        "success": True,
+        "email_id": email_id,
+        "message": "Email marked for unsubscribe & deletion"
+    })
+
+@app.route("/api/unsubscribe", methods=["GET"])
+def api_list_unsubscribe():
+    """List all pending unsubscribe requests."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS unsubscribe_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email_id TEXT NOT NULL UNIQUE,
+            account TEXT,
+            subject TEXT,
+            sender_email TEXT,
+            sender_name TEXT,
+            date TEXT,
+            status TEXT DEFAULT 'pending',
+            flagged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            processed_at TEXT,
+            result TEXT
+        )
+    """)
+    
+    cursor.execute("SELECT * FROM unsubscribe_requests WHERE status = 'pending' ORDER BY flagged_at DESC")
+    items = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return jsonify({"unsubscribe_requests": items, "count": len(items)})
 
 
 @app.route("/api/weather")

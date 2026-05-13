@@ -1,0 +1,24 @@
+TARGET:telegram:Shaobin Sun (dm)
+MESSAGE:🚨 *Urgent Emails Detected*
+
+*[raintea]* We've updated our Paperless Terms
+From: Allstate Insurance \(allstate@service01\.email\-allstate\.com\)
+Date: 2026\-05\-11 17:32\+00:00
+Urgency: 7/10
+
+*[raintea]* Shaobin, here's your verification code
+From: PediaTrust \(mychart@email\.pediatrust\.com\)
+Date: 2026\-05\-11 16:47\+00:00
+Urgency: 6/10
+
+*[raintea]* Shaobin, you have signed up for auto pay for a visit on May 11
+From: PediaTrust \(mychart@email\.pediatrust\.com\)
+Date: 2026\-05\-11 15:43\+00:00
+Urgency: 6/10
+
+*[raintea]* Notification: Ed and Yan Meeting @ Mon May 11, 2026 1:30pm \- 2pm \(CDT\) \(Shaobin Sun\)
+From: Google Calendar \(calendar\-notification@google\.com\)
+Date: 2026\-05\-11 18:00\+00:00
+Urgency: 0/10
+
+_Check the web portal for full details\._
